@@ -181,6 +181,9 @@ declaration closes the socket before its declared attacker-controlled payload is
 `ServerEncrypt-main` (our outgoing) / `ClientEncrypt-main` (incoming), 12-byte little-endian
 per-direction sequence nonce, AAD = the 4-byte frame header. A decrypt failure is **unrecoverable**
 for that session (the nonce counters have diverged) — the server closes the connection (§6).
+After pair-verify, watchOS can send an empty cleartext `NoOp` as an idle keepalive. It is authenticated
+by the live paired connection but sits outside the AEAD message sequence, so the server accepts it
+without decrypting it or consuming the inbound nonce counter.
 
 **Session/command layer (`E_OPACK`):** OPACK-encoded dicts keyed by `_i` (identifier/method), `_c`
 (content), `_t` (type: 1=event, 2=request, 3=response), `_x` (transaction id). The server dispatches
@@ -472,6 +475,9 @@ against the TVRemoteCore decompile **and** a real Apple TV 4K (tvOS 26.5).
   `Decrypt failed`. The server **closes the connection**; iOS reconnects and re-runs pair-verify
   automatically. (We considered server-side TCP keepalive but a tcpdump of an idle real-ATV
   connection showed **no** server keepalives, so we don't add any — Rapport drives liveness.)
+- An Apple Watch idle connection may instead send an empty cleartext Companion `NoOp`. It is a
+  client keepalive outside the encrypted nonce sequence; accepting it without AEAD processing keeps
+  the following encrypted command synchronized.
 - **Overlapping connections:** device-wide media facts remain shared, but every TCP protocol owns its
   own TVRC/RTI/input state. Teardown unregisters and invalidates that session exactly once; an old
   connection that loses the race with its replacement is therefore excluded from later TV-IME RTI

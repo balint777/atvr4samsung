@@ -188,6 +188,28 @@ def test_malformed_opack_is_tolerated_only_for_the_small_compatibility_budget():
     assert transport.closed
 
 
+def test_cleartext_noop_keepalive_does_not_consume_the_encrypted_nonce():
+    service, transport = _service()
+    server_out = b"s" * 32
+    client_out = b"c" * 32
+    service.chacha = chacha20.Chacha20Cipher(server_out, client_out, nonce_length=12)
+    client_cipher = chacha20.Chacha20Cipher(client_out, server_out, nonce_length=12)
+
+    service.data_received(_frame(FrameType.NoOp, b""))
+
+    assert not transport.closed
+
+    system_info = {"client": "watchOS"}
+    message = {"_i": "_systemInfo", "_x": 1, "_t": 2, "_c": system_info}
+    plaintext = opack.pack(message)
+    header = bytes([FrameType.E_OPACK.value]) + (len(plaintext) + 16).to_bytes(3, "big")
+    service.data_received(header + client_cipher.encrypt(plaintext, aad=header))
+
+    assert not transport.closed
+    assert service.session.system_info == system_info
+    assert transport.writes
+
+
 def test_pre_auth_idle_connection_expires():
     async def exercise() -> None:
         service, transport = _service(timeout=0.01)

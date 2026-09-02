@@ -491,6 +491,11 @@ class FakeCompanionService(CompanionServerAuth, asyncio.Protocol):
                 _LOGGER.warning("Paired-client authorization changed; closing connection before dispatch")
                 self._close_connection()
                 return False
+            if frame_type is FrameType.NoOp and not frame_data:
+                # watchOS sends this idle keepalive outside the AEAD sequence. Decrypting its empty
+                # payload would consume a nonce and permanently desynchronize the next real frame.
+                _LOGGER.debug("Received cleartext Companion NoOp keepalive")
+                return self.transport is None or not self.transport.is_closing()
             try:
                 frame_data = self.chacha.decrypt(frame_data, aad=header)
             except Exception:
