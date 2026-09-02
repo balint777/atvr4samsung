@@ -14,6 +14,7 @@ from atvr4samsung.bridge.keymap import Action
 from atvr4samsung.companion import server as srv
 from atvr4samsung.companion.dispatch import CommandDispatchLane
 from atvr4samsung.companion.protocol.appletv import FakeCompanionSessionState
+from atvr4samsung.companion.protocol.enums import TouchAction
 from atvr4samsung.companion.relay import Command, RepeatPhase
 from atvr4samsung.companion.repeater import HoldRepeater, HoldRepeatConfig
 from atvr4samsung.samsung.client import SamsungFrameClient
@@ -424,6 +425,20 @@ class TestTouchStopEndsHold(unittest.IsolatedAsyncioTestCase):
 
 
 class TestReleaseFailsClosed(unittest.TestCase):
+    def test_current_move_phase_without_timestamp_reaches_relay_without_malformed_frame(self):
+        svc = srv.BridgeCompanionService.__new__(srv.BridgeCompanionService)
+        svc.session = FakeCompanionSessionState(svc)
+        svc._malformed_frames = 0
+        calls = []
+        svc._relay = types.SimpleNamespace(on_touch=lambda *args: calls.append(args))
+
+        svc.handle__hidt({"_c": {"_tPh": "2", "_cx": "640", "_cy": "480"}})
+
+        self.assertEqual(svc._malformed_frames, 0)
+        self.assertEqual(calls, [("hold", 640, 480)])
+        self.assertEqual(svc.session.touch_event.press_mode, TouchAction.Move)
+        self.assertEqual(svc.session.touch_event.ns, 0)
+
     def test_release_with_missing_coords_still_reaches_relay(self):
         # A malformed release (no _cx/_cy/_ns) must not stop the release from reaching the relay —
         # otherwise a hold could never be STOPped by it. The base decode is isolated and coords default

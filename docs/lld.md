@@ -239,8 +239,10 @@ or redaction behavior. Notable bridge overrides:
   each with an empty success response (`handle_publishpresenceevent` etc.). The base loop otherwise
   had no handler and replied with an RPError plus a warning on every push (~340/week); the phone
   simply re-sent. An empty `FetchUpNextInfo` ack is truthful — nothing is playing.
-- `handle__hidt` / `handle__touchstart` — touch session. `_touchStart` **must** reply with a touch
-  device id under `_c['_i']` (we send `{"_i": 1}`); an empty reply makes iOS fail the touch session
+- `handle__hidt` / `handle__touchstart` — touch session. Current iOS/watchOS movement uses
+  `_tPh=2`; the legacy phase `3` is accepted as the same in-progress gesture update, and the optional
+  `_ns` timestamp defaults to zero when absent. `_touchStart` **must** reply with a touch device id
+  under `_c['_i']` (we send `{"_i": 1}`); an empty reply makes iOS fail the touch session
   (`RPErrorDomain -6762 "No touch device ID"`) and tear down the whole remote.
 - `handle_tvrcsessionstart` / `handle_fetchmediacontrolstatus` / `handle__interest` — advertise media
   control (see §5).
@@ -419,7 +421,8 @@ Mechanics:
   shared websocket.
 
 
-touch points (`_cx/_cy` in 0–1000, phase `_tPh` 1=press/3=move/4=release). The translator resolves a
+touch points (`_cx/_cy` in 0–1000, phase `_tPh` 1=press, 2=move, 3=legacy hold/move, 4=release).
+The optional `_ns` timestamp is not needed for gesture resolution. The translator resolves a
 press→release into a **tap** (total travel ≤ `tap_max_travel`=60 → SELECT) or a **swipe** (travel ≥
 `swipe_threshold`=120 → dominant axis via `dominant_ratio`=1.3 → UP/DOWN/LEFT/RIGHT). Directions map
 to keys via `GESTURE_TO_SAMSUNG`. Thresholds live in `GestureConfig` (tunable).

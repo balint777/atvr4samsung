@@ -723,21 +723,21 @@ class FakeCompanionService(CompanionServerAuth, asyncio.Protocol):
         self.send_response(message, {})
 
     def handle__hidt(self, message):
-        press_mode: int = message["_c"]["_tPh"]
-        ns = message["_c"]["_ns"]
-        cx = message["_c"]["_cx"]
-        cy = message["_c"]["_cy"]
-        if press_mode == TouchAction.Press:
+        content = message["_c"]
+        touch_action = TouchAction(int(content["_tPh"]))
+        cx = int(content["_cx"])
+        cy = int(content["_cy"])
+        # Current Apple Remote clients can omit the timestamp; it is only diagnostic bookkeeping.
+        ns = int(content.get("_ns", 0))
+        if touch_action is TouchAction.Press:
             _LOGGER.debug("Touch event press to (%s, %s) at time %s", cx, cy, ns)
-        elif TouchAction.Hold:
+        elif touch_action in (TouchAction.Move, TouchAction.Hold):
             _LOGGER.debug("Touch event move to (%s, %s) at time %s", cx, cy, ns)
-        elif press_mode == TouchAction.Release:
+        elif touch_action is TouchAction.Release:
             _LOGGER.debug("Touch event release to (%s, %s) at time %s", cx, cy, ns)
-        elif press_mode == TouchAction.Click:
+        elif touch_action is TouchAction.Click:
             _LOGGER.debug("Touch event click to (%s, %s) at time %s", cx, cy, ns)
-        else:
-            _LOGGER.warning("Touch event mode not supported %s", press_mode)
-        self.session.touch_event = HidEvent(TouchAction(press_mode), cx, cy, ns)
+        self.session.touch_event = HidEvent(touch_action, cx, cy, ns)
 
     def handle__mcc(self, message):
         args = {}
