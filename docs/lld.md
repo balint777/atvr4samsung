@@ -227,10 +227,11 @@ or redaction behavior. Notable bridge overrides:
   `deviceCapabilitiesV2` binary-plist quirk), then closes on the third; a ChaCha decrypt failure still closes
   immediately so the client re-pairs.
 - `handle__hidc` — decode `{_hBtS, _hidC}` button frames; resolve via `bridge/keymap.resolve()` and
-  dispatch. Buttons act on **release** (`_hBtS=2`) and de-dupe a SELECT that double-fires within
-  400 ms (a center tap arrives as both a discrete Select and a touch click). Volume Up/Down go through
-  this same release path — one discrete `KEY_VOL*` step per press — because iOS doesn't stream a hold
-  for them (§4). The **Siri/mic button**
+  dispatch. Buttons act on **release** (`_hBtS=2` from iOS or `0` from watchOS); the watchOS form may
+  arrive without a preceding down edge and is acknowledged directly. SELECT is de-duped when it
+  double-fires within 400 ms (a center tap arrives as both a discrete Select and a touch click).
+  Volume Up/Down go through this same release path — one discrete `KEY_VOL*` step per press — because
+  iOS doesn't stream a hold for them (§4). The **Siri/mic button**
   (`_hidC` 10) is acked with an empty response and ignored — a real Apple TV opens a voice-capture
   session we have no audio path to relay; it's dropped from the pressed-button set so it can't wedge
   state. (Prior to v0.8.2 it fell through to a per-tap `Unhandled command` warning with no ack.)
@@ -247,6 +248,9 @@ or redaction behavior. Notable bridge overrides:
 - `handle_mediacontrolcommand` — iOS-26 `MediaControlCommand` flow (GetVolume/SetVolume/captions).
   A SetVolume (slider/button) level is compared to our last level and relayed as one discrete Samsung
   step; the level is mirrored back so the slider stays live (§4).
+- `handle__mcc` — legacy media-control flow still used by watchOS. Crown `SetVolume` becomes one
+  discrete Samsung volume step; `Play` and `Pause` both become the Frame's stateless
+  `KEY_PLAY_BACK` toggle. Other legacy commands retain the base behavior.
 - `handle__tistart` — establish the RTI text-input session and register as an RTI client, but reply
   **unfocused** so iOS doesn't pop the keyboard on connect; focus is driven later by the TV's IME.
 - `handle__tic` — decode the iOS text operation (insert / `deletionCount` backspace / `textToAssert`

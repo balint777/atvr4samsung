@@ -18,6 +18,7 @@ import types
 from atvr4samsung.companion.protocol import appletv as atv
 from atvr4samsung.companion.protocol.enums import HidCommand
 from atvr4samsung.companion import server as srv
+from atvr4samsung.companion.relay import CommandRelay
 
 
 def _make_hid_service():
@@ -61,6 +62,31 @@ def test_mapped_button_still_relays_after_siri_change():
     assert captured.get("response") is not None
     assert svc.session.latest_button == "select"
     assert HidCommand.Select not in svc._pressed_buttons
+
+
+def test_watch_release_only_button_is_acked_and_relayed():
+    svc = srv.BridgeCompanionService.__new__(srv.BridgeCompanionService)
+    svc._pressed_buttons = set()
+    commands = []
+    responses = []
+    svc._relay = CommandRelay(commands.append)
+    svc.send_response = lambda message, content: responses.append(content)
+
+    svc.handle__hidc(_hidc(HidCommand.PlayPause.value, 0))
+
+    assert responses == [{}]
+    assert [command.samsung_key for command in commands] == ["KEY_PLAY_BACK"]
+
+
+def test_watch_release_clears_a_recorded_down_edge():
+    svc = srv.BridgeCompanionService.__new__(srv.BridgeCompanionService)
+    svc._pressed_buttons = {HidCommand.Home}
+    svc._relay = CommandRelay(lambda command: None)
+    svc.send_response = lambda message, content: None
+
+    svc.handle__hidc(_hidc(HidCommand.Home.value, 0))
+
+    assert HidCommand.Home not in svc._pressed_buttons
 
 
 def test_benign_pushed_events_are_acked_empty():
