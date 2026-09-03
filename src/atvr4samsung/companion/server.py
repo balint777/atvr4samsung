@@ -356,6 +356,10 @@ class BridgeCompanionService(FakeCompanionService):
     def handle_fetchupnextinfoevent(self, message):  # noqa: N802
         self.send_response(message, {})
 
+    def handle_fetchcurrenttopshelfitemsevent(self, message):  # noqa: N802
+        """Acknowledge the Top Shelf fetch added to iOS 27 session setup."""
+        self.send_response(message, {})
+
     def handle_tvrcsessionstart(self, message):  # noqa: N802
         """Ack the TV Remote session, then proactively push media-control flags.
 

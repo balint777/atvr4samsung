@@ -5,9 +5,9 @@ Two behaviors are pinned here:
 * The Siri/mic HID button is *acked empty* and never treated as an "Unhandled command", and it never
   wedges ``_pressed_buttons`` (iOS sends states 0/1/2 for it). A real Apple TV opens a voice session;
   we have no audio path to the Frame TV, so we ack and drop it.
-* The benign fire-and-forget events iOS pushes during a Control Center session (PublishPresence,
-  SwitchActiveUserAccount, FetchUpNextInfo) are acked with an empty success response instead of the
-  RPError the base loop used to return (which spammed ~340 warnings/week and made the phone re-send).
+* The benign events iOS sends during a Control Center session (PublishPresence,
+  SwitchActiveUserAccount, FetchUpNextInfo, and iOS 27's FetchCurrentTopShelfItems) are acked with an
+  empty success response instead of the RPError the base loop used to return.
 
 Both use the base/subclass handlers directly via ``__new__`` (stdlib-only, no Apple TV, no network).
 """
@@ -63,8 +63,13 @@ def test_mapped_button_still_relays_after_siri_change():
     assert HidCommand.Select not in svc._pressed_buttons
 
 
-def test_benign_pushed_events_are_acked_empty():
-    for ident in ("PublishPresenceEvent", "SwitchActiveUserAccountEvent", "FetchUpNextInfoEvent"):
+def test_benign_session_events_are_acked_empty():
+    for ident in (
+        "PublishPresenceEvent",
+        "SwitchActiveUserAccountEvent",
+        "FetchUpNextInfoEvent",
+        "FetchCurrentTopShelfItemsEvent",
+    ):
         svc = srv.BridgeCompanionService.__new__(srv.BridgeCompanionService)
         captured: dict = {}
         svc.send_response = lambda message, content: captured.update(content=content)

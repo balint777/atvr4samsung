@@ -239,6 +239,10 @@ or redaction behavior. Notable bridge overrides:
   each with an empty success response (`handle_publishpresenceevent` etc.). The base loop otherwise
   had no handler and replied with an RPError plus a warning on every push (~340/week); the phone
   simply re-sent. An empty `FetchUpNextInfo` ack is truthful — nothing is playing.
+- **iOS 27 Top Shelf fetch** — iOS 27 requests `FetchCurrentTopShelfItemsEvent` while opening the
+  remote. Returning an unsupported-handler RPError leaves the client waiting and it closes the TVRC
+  session about ten seconds later. The bridge has no browsable app catalog, so
+  `handle_fetchcurrenttopshelfitemsevent` returns an empty success response.
 - `handle__hidt` / `handle__touchstart` — touch session. `_touchStart` **must** reply with a touch
   device id under `_c['_i']` (we send `{"_i": 1}`); an empty reply makes iOS fail the touch session
   (`RPErrorDomain -6762 "No touch device ID"`) and tear down the whole remote.
