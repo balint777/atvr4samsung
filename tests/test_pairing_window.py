@@ -44,6 +44,24 @@ class _AuthRecorder(CompanionServerAuth):
 
 
 class TestPairingWindowStore(unittest.TestCase):
+    def test_on_demand_open_reuses_an_active_window(self):
+        with tempfile.TemporaryDirectory() as directory:
+            store = PairingWindowStore(Path(directory), clock=lambda: 100.0)
+            first, first_created = store.open_for_server_if_absent(
+                server_identifier="server-a",
+                server_generation="a" * 32,
+                duration_seconds=300,
+            )
+            second, second_created = store.open_for_server_if_absent(
+                server_identifier="server-a",
+                server_generation="a" * 32,
+                duration_seconds=300,
+            )
+
+            self.assertTrue(first_created)
+            self.assertFalse(second_created)
+            self.assertEqual(first, second)
+
     def test_open_writes_a_fresh_0600_numeric_window(self):
         with tempfile.TemporaryDirectory() as d:
             store = PairingWindowStore(Path(d), clock=lambda: 100.0)

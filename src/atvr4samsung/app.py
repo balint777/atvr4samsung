@@ -173,6 +173,11 @@ async def run(config: Config) -> None:
                 paired_clients=paired,
                 require_paired=True,
                 pairing_window=pairing_window,
+                on_demand_pairing_window_seconds=(
+                    config.companion.pairing_window_seconds
+                    if config.companion.pair_on_demand
+                    else None
+                ),
             )
             bound_identity_identifier = server_identity.identifier
             return listener

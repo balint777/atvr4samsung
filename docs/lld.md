@@ -123,6 +123,10 @@ declaration closes the socket before its declared attacker-controlled payload is
   the persisted server identifier/generation and records both with the PIN. M1 takes the shared
   pairing-state lock, reads the active `pairing-window.json`, and binds its SRP exchange to that
   record's fresh random generation **and** the daemon's in-memory server identifier/generation.
+  When `companion.pair_on_demand` is explicitly enabled and no bound window exists, M1 atomically
+  creates one for `companion.pairing_window_seconds`; simultaneous requests reuse that generation
+  and PIN rather than rotating it. The PIN remains in the private record for a trusted wrapper to
+  present and is never sent over Companion Link.
   Missing, corrupt, unreadable, expired, legacy/unbound, replaced, or identity-mismatched records
   return Authentication and create no setup state. Before that window lookup or any SRP work, a shared,
   monotonic start limiter atomically consumes every syntactically valid M1: **5 per source** and

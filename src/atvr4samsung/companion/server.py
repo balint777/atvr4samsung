@@ -115,6 +115,7 @@ class BridgeCompanionService(FakeCompanionService):
         pair_failure_limiter: Optional[PairFailureLimiter] = None,
         server_session_factory: Optional[Callable[[str], tuple[object, str]]] = None,
         authentication_timeout: float = AUTHENTICATION_TIMEOUT_SECONDS,
+        on_demand_pairing_window_seconds: float | None = None,
         dispatch_lane: Optional[CommandDispatchLane] = None,
         service_registry: Optional[set["BridgeCompanionService"]] = None,
         pairing_window=None,
@@ -133,6 +134,7 @@ class BridgeCompanionService(FakeCompanionService):
             pair_failure_limiter=pair_failure_limiter,
             server_session_factory=server_session_factory,
             authentication_timeout=authentication_timeout,
+            on_demand_pairing_window_seconds=on_demand_pairing_window_seconds,
         )
         if dispatch is not None and dispatch_lane is None:
             raise ValueError(
@@ -781,6 +783,7 @@ async def serve(
     server_session_factory: Optional[Callable[[str], tuple[object, str]]] = None,
     authentication_timeout: float = AUTHENTICATION_TIMEOUT_SECONDS,
     pairing_window=None,
+    on_demand_pairing_window_seconds: float | None = None,
 ):
     """Start the Companion TCP server. Returns ``(server, state)``.
 
@@ -814,6 +817,7 @@ async def serve(
             pair_failure_limiter=pair_failure_limiter,
             server_session_factory=server_session_factory,
             authentication_timeout=authentication_timeout,
+            on_demand_pairing_window_seconds=on_demand_pairing_window_seconds,
             dispatch_lane=lane, service_registry=services,
         )
 

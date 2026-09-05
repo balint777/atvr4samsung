@@ -66,6 +66,8 @@ class CompanionConfig:
     port: int = 49152
     model: str = "AppleTV14,1"
     state_dir: Optional[Path] = None
+    pair_on_demand: bool = False
+    pairing_window_seconds: int = 300
 
 
 @dataclass
@@ -127,7 +129,11 @@ class Config:
             port=companion_port,
             model=str(comp.get("model", "AppleTV14,1")),
             state_dir=_expand(comp.get("state_dir")),
+            pair_on_demand=_as_bool(comp.get("pair_on_demand"), False),
+            pairing_window_seconds=int(comp.get("pairing_window_seconds", 300)),
         )
+        if not 1 <= companion.pairing_window_seconds <= 24 * 60 * 60:
+            raise ValueError("config: companion.pairing_window_seconds must be 1-86400")
 
         log_level = str((data.get("logging") or {}).get("level", "INFO"))
         return cls(

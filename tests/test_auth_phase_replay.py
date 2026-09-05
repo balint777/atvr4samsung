@@ -18,6 +18,7 @@ from atvr4samsung.companion.protocol.enums import FrameType
 from atvr4samsung.companion.protocol.paired_clients import PairedClients
 from atvr4samsung.companion.protocol.support import hkdf_expand
 from atvr4samsung.companion.protocol.tlv8 import ErrorCode, TlvValue, read_tlv, write_tlv
+from atvr4samsung.pairing_window import PairingWindowStore
 
 _TEST_LOOP: asyncio.AbstractEventLoop | None = None
 _PAIRING_PIN = "5718"
@@ -60,7 +61,14 @@ def _auth_wire(frame_type: FrameType, tlv: dict) -> bytes:
     return _frame(frame_type, opack.pack({"_pd": write_tlv(tlv)}))
 
 
-def _service(*, paired: PairedClients | None = None, pairing_window=None):
+def _service(
+    *,
+    paired: PairedClients | None = None,
+    pairing_window=None,
+    unique_id: str | None = None,
+    server_identity_generation: str | None = None,
+    on_demand_pairing_window_seconds: float | None = None,
+):
     global _TEST_LOOP
     try:
         asyncio.get_running_loop()
@@ -75,6 +83,9 @@ def _service(*, paired: PairedClients | None = None, pairing_window=None):
         require_paired=paired is not None,
         pairing_window=pairing_window,
         authentication_timeout=0,
+        unique_id=unique_id,
+        server_identity_generation=server_identity_generation,
+        on_demand_pairing_window_seconds=on_demand_pairing_window_seconds,
     )
     transport = _Transport()
     service.connection_made(transport)
@@ -284,6 +295,30 @@ def test_pair_verify_can_fall_back_to_window_gated_pair_setup():
     assert service._pv_session_key is None
     assert service._pv_server_pub is None
     assert service._pv_client_pub is None
+
+
+def test_unpaired_client_opens_on_demand_window_and_continues_setup(tmp_path):
+    controller_key = Ed25519PrivateKey.generate()
+    pairing_window = PairingWindowStore(tmp_path)
+    service, transport = _service(
+        paired=PairedClients(tmp_path / "paired-clients.json"),
+        pairing_window=pairing_window,
+        unique_id="server-a",
+        server_identity_generation="a" * 32,
+        on_demand_pairing_window_seconds=300,
+    )
+    _start_pair_verify(service, transport, controller_key, b"new-phone")
+
+    service.data_received(_auth_wire(FrameType.PS_Start, {TlvValue.SeqNo: b"\x01"}))
+
+    frame_type, setup_m2 = _last_auth_response(transport)
+    assert not transport.closed
+    assert service.authentication_phase is AuthenticationPhase.SETUP_M3
+    assert frame_type is FrameType.PS_Next
+    assert setup_m2[TlvValue.SeqNo] == b"\x02"
+    window = pairing_window.active_for_server("server-a", "a" * 32)
+    assert window is not None
+    assert window.pin == service._setup_pin
 
 
 def test_pair_verify_fallback_is_rejected_without_an_enrollment_window():

@@ -106,6 +106,7 @@ class CompanionServerAuth(ABC):
         pairing_window=None,
         server_identity_generation=None,
         server_session_factory: Callable[[str], tuple[object, str]] | None = None,
+        on_demand_pairing_window_seconds: float | None = None,
     ):
         self.device_name = device_name
         self.unique_id = unique_id.encode()
@@ -127,6 +128,7 @@ class CompanionServerAuth(ABC):
         # Leave the default unresolved so protocol tests can patch ``new_server_session`` at call time.
         self._server_session_factory = server_session_factory
         self._pairing_window = pairing_window
+        self._on_demand_pairing_window_seconds = on_demand_pairing_window_seconds
         # Persist client LTPKs at setup and verify their signature at pair-verify, so only
         # enrollment-paired clients can connect. Disabled (legacy permissive) when no store is provided.
         self._paired = paired_clients
@@ -408,7 +410,7 @@ class CompanionServerAuth(ABC):
             self._send_setup_backoff(retry_after)
             return False
 
-        window = self._active_pairing_window()
+        window = self._active_or_on_demand_pairing_window()
         if window is None:
             self._clear_setup_session()
             self._send_setup_error(seqno=b"\x02")
@@ -439,6 +441,27 @@ class CompanionServerAuth(ABC):
         )
         self.send_to_client(FrameType.PS_Next, {"_pd": tlv, "_pwTy": 1})
         return True
+
+    def _active_or_on_demand_pairing_window(self):
+        window = self._active_pairing_window()
+        if window is not None or self._on_demand_pairing_window_seconds is None:
+            return window
+        opener = getattr(self._pairing_window, "open_for_server_if_absent", None)
+        binding = self._server_identity_binding()
+        if opener is None or binding is None:
+            return None
+        try:
+            window, created = opener(
+                server_identifier=binding[0],
+                server_generation=binding[1],
+                duration_seconds=self._on_demand_pairing_window_seconds,
+            )
+        except Exception:
+            _LOGGER.warning("Could not open an on-demand pairing window", exc_info=True)
+            return None
+        if created:
+            _LOGGER.info("Opened an on-demand pairing window after an unpaired client requested setup")
+        return window
 
     def _m3_setup(self, pairing_data) -> bool:
         setup_session = self._setup_session

@@ -85,7 +85,8 @@ installation was removed in 2.0. See [operations](docs/operations.md#migrate-fro
 
 ## Security notes
 
-- Pairing is closed by default. `pair` opens a short-lived enrollment window.
+- Pairing is closed by default. `pair` opens a short-lived enrollment window; trusted wrappers can
+  opt into a PIN-gated on-demand window when an unpaired controller requests Pair-Setup.
 - Samsung control is TLS-only on port 8002 with an explicitly reviewed certificate pin.
 - Real config, tokens, pairing keys, and state are gitignored and must never be committed.
 - The container runs unprivileged with a read-only root filesystem, no added Linux capabilities, and

@@ -18,6 +18,11 @@ companion:
   # Enrollment has no static PIN: do not add companion.pin; use `atvr4samsung pair` for a 5-minute window.
   state_dir: "~/.local/state/atvr4samsung"
 
+  # Optional: let a valid Pair-Setup request open a short PIN window automatically.
+  # The client still needs the PIN; enable only when a trusted notifier exposes it to the operator.
+  pair_on_demand: false
+  pairing_window_seconds: 300
+
 samsung:
   host: "192.168.1.50"            # Frame TV IP
   mac: "AA:BB:CC:DD:EE:FF"        # Frame TV wired MAC (for Wake-on-LAN)

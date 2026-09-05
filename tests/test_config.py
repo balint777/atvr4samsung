@@ -59,6 +59,20 @@ class TestConfigDefaults(unittest.TestCase):
         cfg = Config.from_mapping(minimal_mapping())
         self.assertEqual(cfg.companion.port, 49152)
         self.assertEqual(cfg.companion.model, "AppleTV14,1")
+        self.assertFalse(cfg.companion.pair_on_demand)
+        self.assertEqual(cfg.companion.pairing_window_seconds, 300)
+
+    def test_on_demand_pairing_configuration(self):
+        data = minimal_mapping(
+            companion={
+                "device_name": "Frame Living Room",
+                "pair_on_demand": True,
+                "pairing_window_seconds": 420,
+            }
+        )
+        cfg = Config.from_mapping(data)
+        self.assertTrue(cfg.companion.pair_on_demand)
+        self.assertEqual(cfg.companion.pairing_window_seconds, 420)
 
     def test_log_level_default_and_override(self):
         self.assertEqual(Config.from_mapping(minimal_mapping()).log_level, "INFO")

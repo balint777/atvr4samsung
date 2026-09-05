@@ -158,6 +158,27 @@ class PairingWindowStore:
         )
         return window
 
+    def open_for_server_if_absent(
+        self,
+        *,
+        server_identifier: str,
+        server_generation: str,
+        duration_seconds: float = DEFAULT_WINDOW_SECONDS,
+    ) -> tuple[PairingWindow, bool]:
+        """Return the active bound window or atomically create one for an on-demand request."""
+        with self.transaction():
+            current = self._active_for_server_locked(server_identifier, server_generation)
+            if current is not None:
+                return current, False
+            return (
+                self.open_locked(
+                    server_identifier=server_identifier,
+                    server_generation=server_generation,
+                    duration_seconds=duration_seconds,
+                ),
+                True,
+            )
+
     def active(self) -> Optional[PairingWindow]:
         """Return the current valid window, or ``None`` without exposing record details."""
         if pairing_reset_in_progress(self.state_dir):

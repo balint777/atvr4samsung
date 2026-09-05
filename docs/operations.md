@@ -233,6 +233,7 @@ Samsung token, and the TLS pin.
 | Container is unhealthy | Run `logs`; confirm `config.yaml`, the 0600 Samsung TLS pin, and fixed Companion port. Upgrade automatically rolls back. |
 | Device is not listed | Host networking must be active; allow mDNS UDP 5353 and the configured Companion TCP port. Reflect `_companion-link._tcp` across VLANs. |
 | `pair` says identity is missing | Start the container first so the daemon creates its persistent identity. |
+| An on-demand pairing window opens unexpectedly | Disable `companion.pair_on_demand`; it should be enabled only when a trusted local wrapper securely presents the generated PIN. |
 | Samsung TLS pin is missing or changed | Repeat `trust-tv`, independently review the fingerprint, approve it, then restart. |
 | TV shows Allow every time | Ensure `/data/samsung-token.txt` is writable and persists in `state/`. |
 | Wake-on-LAN fails | WoL is unreliable on some 2021+ Frames. Confirm the directed broadcast and TV quick-start/mobile-power settings. |

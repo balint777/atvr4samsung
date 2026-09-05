@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog: https://keepachangelog.com/
 
+## [2.1.0] - 2026-09-05
+
+### Added
+
+- Added opt-in on-demand enrollment: an admitted Pair-Setup request can atomically open or reuse a
+  short-lived, identity-bound PIN window so trusted wrappers can notify the operator without making
+  the phone reconnect.
+
 ## [2.0.1] - 2026-07-18
 
 ### Fixed

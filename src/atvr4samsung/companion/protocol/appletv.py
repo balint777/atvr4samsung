@@ -336,6 +336,7 @@ class FakeCompanionService(CompanionServerAuth, asyncio.Protocol):
         pair_failure_limiter: PairFailureLimiter | None = None,
         server_session_factory: Callable[[str], tuple[object, str]] | None = None,
         authentication_timeout: float = AUTHENTICATION_TIMEOUT_SECONDS,
+        on_demand_pairing_window_seconds: float | None = None,
     ):
         auth_kwargs = {
             "paired_clients": paired_clients,
@@ -343,6 +344,7 @@ class FakeCompanionService(CompanionServerAuth, asyncio.Protocol):
             "pairing_window": pairing_window,
             "server_identity_generation": server_identity_generation,
             "server_session_factory": server_session_factory,
+            "on_demand_pairing_window_seconds": on_demand_pairing_window_seconds,
         }
         if unique_id is not None:
             auth_kwargs["unique_id"] = unique_id
