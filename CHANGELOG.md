@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog: https://keepachangelog.com/
 
+## [2.2.0] - 2026-09-05
+
+### Changed
+
+- On-demand pairing windows are now single-use: the first successful enrollment atomically stores
+  the controller and closes its window. Operator-opened windows remain reusable until expiry.
+
 ## [2.1.2] - 2026-09-05
 
 ### Added

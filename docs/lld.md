@@ -126,7 +126,9 @@ declaration closes the socket before its declared attacker-controlled payload is
   When `companion.pair_on_demand` is explicitly enabled and no bound window exists, M1 atomically
   creates one for `companion.pairing_window_seconds`; simultaneous requests reuse that generation
   and PIN rather than rotating it. The PIN remains in the private record for a trusted wrapper to
-  present and is never sent over Companion Link.
+  present and is never sent over Companion Link. On-demand windows are marked single-use and are
+  durably removed in the same locked transaction that stores the first successfully enrolled
+  controller. Windows opened by the operator remain reusable until expiry.
   Missing, corrupt, unreadable, expired, legacy/unbound, replaced, or identity-mismatched records
   return Authentication and create no setup state. Before that window lookup or any SRP work, a shared,
   monotonic start limiter atomically consumes every syntactically valid M1: **5 per source** and

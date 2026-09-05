@@ -46,6 +46,7 @@ class PairingWindow:
     generation: str
     server_identifier: str
     server_generation: str
+    single_use: bool = False
 
 
 def is_strong_window_pin(pin: str) -> bool:
@@ -101,6 +102,7 @@ class PairingWindowStore:
         server_identifier: str,
         server_generation: str,
         duration_seconds: float = DEFAULT_WINDOW_SECONDS,
+        single_use: bool = False,
     ) -> PairingWindow:
         """Durably replace the window with a fresh PIN valid for ``duration_seconds``."""
         with self.transaction():
@@ -108,6 +110,7 @@ class PairingWindowStore:
                 server_identifier=server_identifier,
                 server_generation=server_generation,
                 duration_seconds=duration_seconds,
+                single_use=single_use,
             )
 
     def open_locked(
@@ -116,6 +119,7 @@ class PairingWindowStore:
         server_identifier: str,
         server_generation: str,
         duration_seconds: float = DEFAULT_WINDOW_SECONDS,
+        single_use: bool = False,
     ) -> PairingWindow:
         """Open a window while the caller already holds the pairing-state transaction lock."""
         if pairing_reset_in_progress(self.state_dir):
@@ -139,6 +143,7 @@ class PairingWindowStore:
             generation=generation,
             server_identifier=server_identifier,
             server_generation=server_generation,
+            single_use=single_use,
         )
         # A visible replacement without this strict parent-directory fsync can vanish after a
         # crash and restore the previous known PIN. Do not let callers announce this window first.
@@ -151,6 +156,7 @@ class PairingWindowStore:
                     "pin": window.pin,
                     "server_generation": window.server_generation,
                     "server_identifier": window.server_identifier,
+                    "single_use": window.single_use,
                 },
                 separators=(",", ":"),
             ),
@@ -175,6 +181,7 @@ class PairingWindowStore:
                     server_identifier=server_identifier,
                     server_generation=server_generation,
                     duration_seconds=duration_seconds,
+                    single_use=True,
                 ),
                 True,
             )
@@ -238,7 +245,10 @@ class PairingWindowStore:
             current = self._active_for_server_locked(server_identifier, server_generation)
             if current is None or current.generation != generation:
                 return False, None
-            return True, mutation()
+            result = mutation()
+            if current.single_use:
+                durable_unlink(self._path)
+            return True, result
 
     @classmethod
     def clear_state(cls, state_dir: Path) -> bool:
@@ -260,6 +270,7 @@ def _parse_window(value: object) -> PairingWindow:
     generation = value.get("generation")
     server_identifier = value.get("server_identifier")
     server_generation = value.get("server_generation")
+    single_use = value.get("single_use", False)
     if not isinstance(pin, str) or not is_strong_window_pin(pin):
         raise ValueError("window PIN is invalid")
     if (
@@ -274,12 +285,15 @@ def _parse_window(value: object) -> PairingWindow:
         raise ValueError("window expiry is invalid")
     if not _is_valid_binding(server_identifier, server_generation):
         raise ValueError("window server identity binding is invalid")
+    if not isinstance(single_use, bool):
+        raise ValueError("window single-use flag is invalid")
     return PairingWindow(
         pin=pin,
         expires_at=float(expires_at),
         generation=generation,
         server_identifier=server_identifier,
         server_generation=server_generation,
+        single_use=single_use,
     )
 
 

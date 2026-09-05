@@ -319,6 +319,7 @@ def test_unpaired_client_opens_on_demand_window_and_continues_setup(tmp_path):
     window = pairing_window.active_for_server("server-a", "a" * 32)
     assert window is not None
     assert window.pin == service._setup_pin
+    assert window.single_use
 
 
 def test_pair_verify_fallback_is_rejected_without_an_enrollment_window():

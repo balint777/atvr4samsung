@@ -61,6 +61,47 @@ class TestPairingWindowStore(unittest.TestCase):
             self.assertTrue(first_created)
             self.assertFalse(second_created)
             self.assertEqual(first, second)
+            self.assertTrue(first.single_use)
+
+    def test_successful_mutation_consumes_an_on_demand_window(self):
+        with tempfile.TemporaryDirectory() as directory:
+            store = PairingWindowStore(Path(directory), clock=lambda: 100.0)
+            window, _ = store.open_for_server_if_absent(
+                server_identifier="server-a",
+                server_generation="a" * 32,
+                duration_seconds=300,
+            )
+            mutations: list[str] = []
+
+            current, _ = store.mutate_if_current(
+                window.generation,
+                lambda: mutations.append("paired"),
+                server_identifier="server-a",
+                server_generation="a" * 32,
+            )
+
+            self.assertTrue(current)
+            self.assertEqual(mutations, ["paired"])
+            self.assertIsNone(store.active())
+
+    def test_manual_window_remains_reusable_after_successful_mutation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            store = PairingWindowStore(Path(directory), clock=lambda: 100.0)
+            window = store.open(
+                server_identifier="server-a",
+                server_generation="a" * 32,
+                duration_seconds=300,
+            )
+
+            current, _ = store.mutate_if_current(
+                window.generation,
+                lambda: None,
+                server_identifier="server-a",
+                server_generation="a" * 32,
+            )
+
+            self.assertTrue(current)
+            self.assertEqual(store.active(), window)
 
     def test_open_writes_a_fresh_0600_numeric_window(self):
         with tempfile.TemporaryDirectory() as d:
